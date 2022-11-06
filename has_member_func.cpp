@@ -69,7 +69,7 @@ struct has_stream : decltype(detail::test_stream<T, Arg>(0)){};
 template <typename T>
 class has_helloworld
 {
-    using one = char; // size 1 byte.
+    using one = uint8_t; // size 1 byte.
     using two = uint16_t; // size 2 bytes.
 
     template<typename U> // cannot use T here.
@@ -78,8 +78,8 @@ class has_helloworld
     template<typename U>  // cannot use T here.
     static two test(...); // fallback method. the most generic one.   
 public:
-    // enum { value = sizeof(test<T>(0)) == sizeof(char) };
-    static const int value = sizeof(test<T>(0)) == sizeof(char); // this looks more modern and explicit.
+    // enum { value = sizeof(test<T>(0)) == sizeof(uint8_t) };
+    static const int value = sizeof(test<T>(0)) == sizeof(uint8_t); // this looks more modern and explicit.
 };
 
 int main()
