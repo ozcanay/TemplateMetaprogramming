@@ -109,6 +109,12 @@ A nice example:
 
 https://stackoverflow.com/a/26718782/4645121
 
+### Mixins
+
+### Static Polymorphism
+
+Static polymorphism is quite similar to dynamic polymorphism. But contrary to dynamic polymorphism with virtual methods, the dispatch of the method calls will take place at compile-time. ```std::enable_shared_from_this``` is a prime example.
+
 # declval
 
 ```
@@ -139,12 +145,6 @@ Inspects the declared type of an entity or the type and value category of an exp
 # constexpr if
 
 The only difference is that if constexpr is evaluated at compile time, whereas if is not.
-
-## Mixins
-
-## Static Polymorphism
-
-Static polymorphism is quite similar to dynamic polymorphism. But contrary to dynamic polymorphism with virtual methods, the dispatch of the method calls will take place at compile-time. ```std::enable_shared_from_this``` is a prime example.
 
 # Tag Dispatching
 
