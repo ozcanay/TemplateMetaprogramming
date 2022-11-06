@@ -47,7 +47,7 @@ Return their type by ::type.
 
 # std::enable_if
 
-enable_if is a set of tools, available in the Standard Library since C++11, that **internally use SFINAE**. They allow to include or exclude overloads from possible function templates or class template specialization.
+enable_if is a set of tools, available in the Standard Library since C++11, that **internally use SFINAE**. They allow to **include or exclude** overloads from possible function templates or class template specialization.
 
 ```
 template< bool B, class T = void >
@@ -61,6 +61,9 @@ If B is true, std::enable_if has a public member typedef type, equal to T; other
 This metafunction is a convenient way to leverage SFINAE prior to C++20's concepts, in particular for conditionally removing functions from the candidate set based on type traits, allowing separate function overloads or specializations based on those different type traits.
 
 One of the primary uses of SFINAE can be found through enable_if expressions.
+
+https://stackoverflow.com/questions/14600201/why-should-i-avoid-stdenable-if-in-function-signatures
+https://stackoverflow.com/questions/59473453/approaches-to-function-sfinae-in-c?noredirect=1&lq=1
 
 # void_t
 
@@ -138,9 +141,34 @@ decltype cannot be called and thus never returns a value. The return type is T&&
 
 Inspects the declared type of an entity or the type and value category of an expression.
 
+# constexpr
+
+constexpr functions might be evaluated at compile-time, if the input is known at compile-time. Otherwise, it is executed at run-time.
+
 # consteval
 
+The consteval specifier declares a function or function template to be an immediate function, that is, every potentially evaluated call (i.e. call out of an unevaluated context) to the function must (directly or indirectly) produce a compile time constant expression. (**History lesson: It used to be spelled constexpr! in a previous revision of the paper.**) 
+
+In contrast, constexpr functions may be evaluated at compile time or run time, and need not produce a constant in all cases. Same as constexpr, a consteval specifier implies inline.
+
+**At most one** of the constexpr, consteval, and constinit specifiers is allowed to appear within the same sequence of declaration specifiers.
 # constinit
+
+constinit is invented to prevent static order initialization fiasco:
+
+Initializing a variable with static storage duration might result in two outcomes:
+
+1. The variable is initialized at compile-time (constant-initialization);
+2. The variable is initialized the first time control passes through its declaration.
+
+Case (2) is problematic because it can lead to the static initialization order fiasco, which is a source of dangerous bugs related to global objects.
+
+The constinit keyword can only be applied on variables with static storage duration. If the decorated variable is not initialized at compile-time, the program is ill-formed (i.e. does not compile).
+
+Using constinit ensures that the variable is initialized at compile-time, and that the static initialization order fiasco cannot take place.
+
+It does **NOT** make the variable immutable. So, it does not imply const. It also does not imply constexpr. However, constexpr **does** imply constinit.
+
 
 # constexpr if
 
@@ -161,7 +189,9 @@ An good example of tag dispatch would be how std::advance is typically implement
 - SFINAE disables a candidate by making it ineligible due to substitution failure.
 Substitution failure is just what it says on the tin: Trying to substitute concrete arguments for the template parameters and encountering an error, which in the immediate context only rejects that candidate.
 
-Sometimes, one or the other technique is easier to apply. And naturally they can be combined to great effect.
+SFINAE is primarily a technique for removing overloads from candidate sets, and tag dispatching is a technique for selecting between two (or more) overloads. There is some overlap in functionality, but they are not equivalent.
+
+Sometimes, one or the other technique is easier to apply. And naturally they can be combined to great effect. Tag dispatching does not manipulate the overload set, but helps you select exactly the function you want by providing the proper arguments through a compile-time expression (e.g. in a type trait). In my experience, this is much easier to debug and get right. If you are an aspiring library writer of sophisticated type traits, you might need enable_if somehow, but for most regular use of compile-time conditions it's not recommended.
 
 Complementary techniques are partial and full specialization. 
 
