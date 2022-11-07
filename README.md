@@ -8,6 +8,15 @@
 
 ```./a.out```
 
+# Intro
+
+Compile time programming topics, the big picture:
+
+1. Tag dispatch
+2. SFINAE
+3. constexpr if (C++17)
+4. concepts (C++20)
+
 # TODO:
 
 - Explain has_member_func.cpp more.
@@ -19,12 +28,24 @@
 - print_variadic -> printing parameter pack.
 - variable templates (NOT to be confused with variadic templates)
 - add notes from you drive doc.
+- implement a same example with enable_if, tag dispatch, constexpr if and concepts. maybe printing integral and non-integral types.
 
-# 
+# Misc
 
-use sizeof...(args) to find "parameter pack" size.
+- use sizeof...(args) to find "parameter pack" size.
 
-Fold expressions is a nice syntax to evaluate binary operators at compile-time. Fold expressions reduce parameter packs on binary operators.
+- Fold expressions is a nice syntax to evaluate binary operators at compile-time. Fold expressions reduce parameter packs on binary operators.
+
+- You need a primary template **declaration**, otherwise the compiler wouldn't know what part of the function would be templated. But you do **NOT need to provide a primary definition.** It is also possible to declare template function as deleted: ```template<typename T> T add(T a, T b) = delete;``` to get compilation error on instantiation **instead of linker error.**
+
+- use ```static_assert``` extensively in order to test your templates. It has no runtime cost at all.
+
+- first primary template is found, then the specializations are considered!
+- primary template is the fallback, default template.
+
+- Note that decltype is not necessarily needed, as sizeof (and all unevaluated contexts) got that enhancement. It's just that decltype already delivers a type and as such is just cleaner. Here's a sizeof version of one of the overloads. The advantage of decltype over sizeof is also that a temporary is not introduced by specially crafted rules for function calls (https://stackoverflow.com/a/9154394/4645121)
+
+- https://meetingcpp.com/mcpp/slides/2019/Modern%20Template%20Techniques.pdf
 
 # Variadic templates pattern
 
@@ -67,9 +88,16 @@ https://stackoverflow.com/questions/59473453/approaches-to-function-sfinae-in-c?
 
 # void_t
 
-Utility metafunction that maps a sequence of any types to the type void. This metafunction is a convenient way to leverage SFINAE prior to C++20's concepts, in particular for conditionally removing functions from the candidate set based on whether an expression is valid in the **unevaluated context** (such as operand to decltype expression), allowing to exist separate function overloads or specializations, based on supported operations.
+```
+template< class ... > 
+using void_t = void;
+```
+
+Utility metafunction that maps a sequence of any types to the type void. This metafunction is a convenient way to leverage SFINAE prior to C++20's concepts, in particular for conditionally removing functions from the candidate set based on whether an expression is valid in the **unevaluated context** (such as operand to decltype expression), allowing to exist separate function overloads or specializations, based on supported operations. This helper type is often used for **detection pattern.**
 
 This metafunction is used in template metaprogramming to detect ill-formed types in SFINAE context. It can also be used to detect validity of an expression.
+
+class = void is observed in void_t examples. -> the default argument has to be the exact same type as the one used in void_t for it to work.
 
 # Concepts
 
@@ -86,11 +114,11 @@ Thanks to the introduction of two new language keywords: requires and concept, y
 
 This rule applies during overload resolution of **function** templates: When substituting the explicitly specified or deduced type for the template parameter fails, the specialization is discarded from the overload set instead of causing a compile error.
 
-We can use SFINAE with enable_if and void_t. enable_if is old, void_t is newer; however concepts should be used to remove functions from the candidate set.
+We can use SFINAE with enable_if and void_t. enable_if is old, void_t is newer and easier to use; however concepts should be used to remove functions from the candidate set.
 
 This feature is used in template metaprogramming.
 
-Alternatives to SFINAE   
+Need for SFINAE is largely minimized with the concepts introduced to the language in C++20. Alternatives to SFINAE   
 We have at least three things, from more conventional to the more modern in order:
 
 1. tag dispatching
@@ -101,6 +129,10 @@ Since C++17 we have a new tool, build in the language, that allows you to check 
 
 3. Concepts!
 
+
+### Expression SFINAE
+
+It's basically SFINAE on expressions. If the expression inside decltype isn't valid, well, kick the function from the VIP lounge of overloads. A common use of Expression SFINAE is when defining traits, like a trait to check if a class sports a certain member function:
 
 # CRTP
 
@@ -139,7 +171,7 @@ decltype cannot be called and thus never returns a value. The return type is T&&
 
 # decltype
 
-Inspects the declared type of an entity or the type and value category of an expression.
+Inspects the declared type of an entity or the type and value category of an expression. You will encounter ```decltype``` with expression SFINAE, tag dispatch etc. It is also common to encounter expressions that accomodate comma operator in ```decltype```. The last expression inside the decltype will dictate the type: ```decltype(serialize_imp(os, obj, 0), void())```.
 
 # constexpr
 
@@ -149,7 +181,10 @@ constexpr functions might be evaluated at compile-time, if the input is known at
 
 The consteval specifier declares a function or function template to be an immediate function, that is, every potentially evaluated call (i.e. call out of an unevaluated context) to the function must (directly or indirectly) produce a compile time constant expression. (**History lesson: It used to be spelled constexpr! in a previous revision of the paper.**) 
 
-In contrast, constexpr functions may be evaluated at compile time or run time, and need not produce a constant in all cases. Same as constexpr, a consteval specifier implies inline.
+### consteval vs constexpr
+In contrast, constexpr functions may be evaluated at compile time or run time, and need not produce a constant in all cases. consteval function is a one which is "required" to execute only at compile time.
+
+Same as constexpr, a consteval specifier implies inline.
 
 **At most one** of the constexpr, consteval, and constinit specifiers is allowed to appear within the same sequence of declaration specifiers.
 # constinit
@@ -172,18 +207,25 @@ It does **NOT** make the variable immutable. So, it does not imply const. It als
 
 # constexpr if
 
-The only difference is that if constexpr is evaluated at compile time, whereas if is not.
+The only difference is that if constexpr is evaluated at compile time, whereas if is not. if constexpr does not have to be a valid code block **inside the templated function**, if the invalid code block is not to be compiled.
 
 # Tag Dispatching
 
-Tag Dispatching enables us to choose a function based on type characteristics.
+Tag Dispatching enables us to choose a function based on type characteristics. What we call "tag" is just basically an empty struct. An example: https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Tag_Dispatching
 
 - The decision takes place at compile-time.
 - Traits make the decision based on specific properties of an argument.
 - The main benefit is performance.
 
 An good example of tag dispatch would be how std::advance is typically implemented.
-## Comparing SFINAE and Tag Dispatching
+
+### Tag dispatching vs enum
+
+https://stackoverflow.com/questions/47200005/what-is-the-differences-between-tag-and-enum-dispatch-in-c
+
+If you used enum, we had to determine at runtime.
+
+### Tag dispatching vs SFINAE vs constexpr-if
 
 - Tag dispatch takes advantage of overload resolution to select the right overload.
 - SFINAE disables a candidate by making it ineligible due to substitution failure.
@@ -196,6 +238,10 @@ Sometimes, one or the other technique is easier to apply. And naturally they can
 Complementary techniques are partial and full specialization. 
 
 Apart from these two, if constexpr and concepts can often simplify things.
+
+https://stackoverflow.com/questions/6972368/stdenable-if-to-conditionally-compile-a-member-function
+
+https://stackoverflow.com/questions/20368187/when-would-i-use-stdintegral-constant-over-constexpr
 
 
 # Expression Templates

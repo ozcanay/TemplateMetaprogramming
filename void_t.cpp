@@ -11,3 +11,30 @@ using void_t = void;
 // std::void_t is just an **identity** type trait that is void no matter what.
 // https://stackoverflow.com/questions/44858395/why-is-the-template-specialization-not-chosen?noredirect=1&lq=1, https://ideone.com/QUJxId
 
+#include <type_traits>
+
+template< class , class = void >
+struct has_member : std::false_type
+{ 
+};
+
+// specialized as has_member< T , void > or discarded (sfinae)
+template< class T >
+struct has_member< T , std::void_t< decltype( T::member ) > > : std::true_type
+{ 
+};
+
+struct A {
+    int member;
+};
+
+struct B {
+};
+
+static_assert( has_member< A >::value);
+// static_assert( has_member< B >::value); // this will not compile. this will not compile even if the class B has a integer field called "member", that is **private.**
+
+int main()
+{
+
+}

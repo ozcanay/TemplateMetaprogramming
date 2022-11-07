@@ -3,7 +3,7 @@
 
 // related links:
 // https://stackoverflow.com/questions/257288/templated-check-for-the-existence-of-a-class-member-function
-// https://stackoverflow.com/questions/87372/check-if-a-class-has-a-member-function-of-a-given-signature?rq=1
+// https://stackoverflow.com/questions/87372/check-if-a-class-has-a-member-function-of-a-given-signature?rq=1 --> THIS IS IMPORTANT. READ ALL OF THE EXAMPLES.
 
 #include <iostream>
 
