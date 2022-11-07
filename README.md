@@ -19,10 +19,22 @@ Compile time programming topics, the big picture:
 
 # Important Links
 
+https://en.cppreference.com/w/cpp/meta
+
 https://quuxplusone.github.io/blog/tags/#metaprogramming
 https://stackoverflow.com/questions/69801126/doesnt-constraining-the-auto-in-c-defeat-the-purpose-of-it
 https://stackoverflow.com/questions/4021981/use-static-assert-to-check-types-passed-to-macro
 https://stackoverflow.com/questions/23095310/c-concepts-vs-static-assert
+https://spectre-code.org/sfinae.html -> IS_ITERABLE. WRITE DOWN THE EXAMPLE FOR THIS.
+
+```
+template <typename T>
+struct is_iterable<T, std::void_t<decltype(std::declval<T>().begin(),
+                                           std::declval<T>().end())>>
+    : std::true_type {};
+```
+
+it is evidently possible to check the validity of more than one expressions in decltype.
 
 ### Advanced
 
@@ -156,6 +168,7 @@ From one perspective, we can say that the requires expression takes a type and t
 Thanks to the introduction of two new language keywords: requires and concept, you can specify a named requirement on a template argument. This makes code much more readable and less “hacky” (as with previous SFINAE based techniques).
 
 https://www.stroustrup.com/good_concepts.pdf
+https://iamsorush.com/posts/concepts-cpp/
 
 ```
 // infamous `requires requires`. First `requires` is requires-clause,
@@ -245,6 +258,8 @@ Inspects the declared type of an entity or the type and value category of an exp
 # constexpr
 
 constexpr functions might be evaluated at compile-time, if the input is known at compile-time. Otherwise, it is executed at run-time.
+
+https://www.codingame.com/playgrounds/2205/7-features-of-c17-that-will-simplify-your-code/constexpr-if
 
 # consteval
 
