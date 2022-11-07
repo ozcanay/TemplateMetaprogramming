@@ -11,6 +11,9 @@ using void_t = void;
 // std::void_t is just an **identity** type trait that is void no matter what.
 // https://stackoverflow.com/questions/44858395/why-is-the-template-specialization-not-chosen?noredirect=1&lq=1, https://ideone.com/QUJxId
 
+
+// https://stackoverflow.com/a/25242544/4645121 -> type sink mentioned in this answer is basically how void_t works.
+
 #include <type_traits>
 
 template< class , class = void >

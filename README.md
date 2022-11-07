@@ -17,18 +17,54 @@ Compile time programming topics, the big picture:
 3. constexpr if (C++17)
 4. concepts (C++20)
 
+# Important Links
+
+https://quuxplusone.github.io/blog/tags/#metaprogramming
+
+# Building Blocks
+
+# Metafunction
+
+Metafunctions receive **types** and/or integral values, and after performing some logics returns **types** and/or integral values. Normal functions manipulate values, **but the focus of a metafunction is types.**
+
+https://iamsorush.com/posts/cpp-meta-function/
+
+### std::integral_constant
+
+```
+template<class T, T v>
+struct integral_constant {
+    static constexpr T value = v;
+    using value_type = T;
+    using type = integral_constant; // using injected-class-name
+    constexpr operator value_type() const noexcept { return value; }
+    constexpr value_type operator()() const noexcept { return value; } // since c++14
+};
+```
+
+Notice that we have two distinct fields related to types: ```value_type``` and ```type```. In my experience, ```value``` is being used more to access the struct type itself.
+
+```
+typedef std::integral_constant<bool,true> std::true_type;
+```
+
+```
+typedef std::integral_constant<bool,false> std::false_type;
+```
+
+
 # TODO:
 
 - Explain has_member_func.cpp more.
-- add zip.
 - expand_all, increment all, print all parameter packs. already present in my other github repo named templates.
 - to_string variadic.
-- add FIBONACCI (not factorial!)
+- add FIBONACCI (not factorial!) -> necati had this.
 - printing type information with constexpr if
 - print_variadic -> printing parameter pack.
 - variable templates (NOT to be confused with variadic templates)
 - add notes from you drive doc.
 - implement a same example with enable_if, tag dispatch, constexpr if and concepts. maybe printing integral and non-integral types.
+- have a file that demonstrates the preferred approach for all topics. I think I need this, since there are gazillion ways to do same stuff.
 
 # Misc
 
@@ -107,12 +143,15 @@ From one perspective, we can say that the requires expression takes a type and t
 
 Thanks to the introduction of two new language keywords: requires and concept, you can specify a named requirement on a template argument. This makes code much more readable and less “hacky” (as with previous SFINAE based techniques).
 
+https://www.stroustrup.com/good_concepts.pdf
+
 # SFINAE
 
-"Substitution Failure Is Not An Error". Very briefly: the compiler can reject code that “would not compile” for a given type.
+"Substitution Failure Is Not An Error". Very briefly: the compiler can reject code that “would not compile” for a given type. SFINAE relies on the compiler **not being allowed to produce an error** if an overloaded function isn’t valid. 
 
+declval is really handy for our SFINAE constructions.
 
-This rule applies during overload resolution of **function** templates: When substituting the explicitly specified or deduced type for the template parameter fails, the specialization is discarded from the overload set instead of causing a compile error.
+This rule applies during overload resolution of **function** templates: When substituting the explicitly specified or deduced type for the template parameter fails, the specialization is discarded (SFINAE'd out) from the overload set instead of causing a compile error.
 
 We can use SFINAE with enable_if and void_t. enable_if is old, void_t is newer and easier to use; however concepts should be used to remove functions from the candidate set.
 
@@ -128,6 +167,8 @@ This is a much more readable version of selecting which version of a function is
 Since C++17 we have a new tool, build in the language, that allows you to check the condition at compile time - without the need to write complex templated code!
 
 3. Concepts!
+
+https://jguegant.github.io/blogs/tech/sfinae-introduction.html
 
 
 ### Expression SFINAE
@@ -168,6 +209,9 @@ Note that declval can only be used in **unevaluated contexts** and is not requir
 
 decltype cannot be called and thus never returns a value. The return type is T&& unless T is (possibly cv-qualified) void, in which case the return type is T.
 
+In my experience delcval is used commonly with references. A related question:
+
+https://stackoverflow.com/questions/67307362/using-declval-with-a-reference-type
 
 # decltype
 
@@ -211,7 +255,9 @@ The only difference is that if constexpr is evaluated at compile time, whereas i
 
 # Tag Dispatching
 
-Tag Dispatching enables us to choose a function based on type characteristics. What we call "tag" is just basically an empty struct. An example: https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Tag_Dispatching
+This relies on the compiler **picking a function** from the overload set based on argument deduction. What we call "tag" is just basically an empty struct. 
+
+An example: https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Tag_Dispatching
 
 - The decision takes place at compile-time.
 - Traits make the decision based on specific properties of an argument.
@@ -227,13 +273,15 @@ If you used enum, we had to determine at runtime.
 
 ### Tag dispatching vs SFINAE vs constexpr-if
 
-- Tag dispatch takes advantage of overload resolution to select the right overload.
+- Tag dispatch takes advantage of **overload resolution** to select the right overload. (overload resolution should be the first thing to come to your mind when tag dispatch is mentioned.)
 - SFINAE disables a candidate by making it ineligible due to substitution failure.
 Substitution failure is just what it says on the tin: Trying to substitute concrete arguments for the template parameters and encountering an error, which in the immediate context only rejects that candidate.
 
-SFINAE is primarily a technique for removing overloads from candidate sets, and tag dispatching is a technique for selecting between two (or more) overloads. There is some overlap in functionality, but they are not equivalent.
+SFINAE is primarily a technique for removing overloads from candidate sets, and tag dispatching is a technique for selecting between two (or more) **overloads**. There is some overlap in functionality, but they are not equivalent.
 
-Sometimes, one or the other technique is easier to apply. And naturally they can be combined to great effect. Tag dispatching does not manipulate the overload set, but helps you select exactly the function you want by providing the proper arguments through a compile-time expression (e.g. in a type trait). In my experience, this is much easier to debug and get right. If you are an aspiring library writer of sophisticated type traits, you might need enable_if somehow, but for most regular use of compile-time conditions it's not recommended.
+Sometimes, one or the other technique is easier to apply. And naturally they can be combined to great effect. Tag dispatching **does not manipulate the overload set**, but helps you select exactly the function you want by providing the proper arguments through a compile-time expression (e.g. in a type trait). In my experience, this is much easier to debug and get right. If you are an aspiring library writer of sophisticated type traits, you might need enable_if somehow, but for most regular use of compile-time conditions it's not recommended.
+
+Tag dispatch usually is faster than SFINAE because it is just overload resolution under the hood. Tag dispatch finishes as soon as a viable overload is found.
 
 Complementary techniques are partial and full specialization. 
 
@@ -259,3 +307,14 @@ https://stackoverflow.com/questions/2172647/template-metaprogramming-difference-
 #
 
 https://stackoverflow.com/a/262984/4645121 -> WRITE THIS TO CRTP. THE FIRST METHOD HAS TO BE WRITTEN.
+
+# Advanced Questions
+
+https://stackoverflow.com/questions/43470741/how-does-eric-nieblers-implementation-of-stdis-function-work
+
+# Examples
+
+http://www.gotw.ca/gotw/071.htm
+
+
+

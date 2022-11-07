@@ -43,8 +43,6 @@ struct ClassWithoutToString {
 };
 
 
-
-
 // second version.
 #include <type_traits>
 template<class>
