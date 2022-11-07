@@ -23,13 +23,13 @@ https://quuxplusone.github.io/blog/tags/#metaprogramming
 
 # Building Blocks
 
-# Metafunction
+### Metafunction
 
 Metafunctions receive **types** and/or integral values, and after performing some logics returns **types** and/or integral values. Normal functions manipulate values, **but the focus of a metafunction is types.**
 
 https://iamsorush.com/posts/cpp-meta-function/
 
-### std::integral_constant
+##### std::integral_constant
 
 ```
 template<class T, T v>
