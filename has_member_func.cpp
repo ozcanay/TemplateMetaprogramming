@@ -6,106 +6,98 @@
 // https://stackoverflow.com/questions/87372/check-if-a-class-has-a-member-function-of-a-given-signature?rq=1 --> THIS IS IMPORTANT. READ ALL OF THE EXAMPLES.
 
 #include <iostream>
+#include <type_traits>
+#include <concepts>
 
+// We will check for the existence of "std::string hello(int)" method. Below two are the structs defined for testing
+struct WithHello {
+    std::string hello(int num) const 
+    {
+        return "hello " + std::to_string(num);
+    }
+};
+
+struct WithoutHello {
+};
+
+
+
+
+
+namespace first {
 // first version.
 // This should be the preferred way starting from C++20.
-template<class T>
-std::string optionalToString(T* obj)
-{
-    constexpr bool has_toString = requires(const T& t) {
-        t.toString();
-    };
 
-    if constexpr (has_toString) {
-        std::cout << "object T has the method toString. calling it..." << std::endl;
-        return obj->toString();
-    } else {
-        return "object T does not have the method toString.";
-    }
+template<typename T>
+concept has_hello_int_return_string = requires(T t) 
+{
+    {t.hello(0)} -> std::same_as<std::string>; // bug: this still works, if the input parameter of hello is std::string.
+}; // do not forget semicolon here.
+
+
+
+static_assert(has_hello_int_return_string<WithHello>);
+static_assert(!has_hello_int_return_string<WithoutHello>);
+
 }
 
-struct ClassWithToString {
-public:
-    std::string toString() const
-    {
-        std::cout << "toString called. const version." << std::endl;
-        return {};
-    }
-
-    std::string toString()
-    {
-        std::cout << "toString called." << std::endl;
-        return {};
-    }
-};
-
-struct ClassWithoutToString {
-};
 
 
+namespace second {
 // second version.
-#include <type_traits>
-template<class>
-struct sfinae_true : std::true_type{};
+
+// need this for SFINAE to work.
+template<typename T>
+struct sfinae_true : std::is_same<T, std::string>{}; // note the inheritance here. instead of just inheriting from std::true_type, I will inherit from std::is_same to be able to check also the return type.
 
 namespace detail{
-    template<class T, class A0>
-    static auto test_stream(int) -> sfinae_true<decltype(std::declval<T>().stream(std::declval<A0>()))>;
+    template<typename T, typename U>
+    static auto test(int) -> sfinae_true<decltype(std::declval<T>().hello(std::declval<U>()))>;
 
-    template<class, class A0>
-    static auto test_stream(long) -> std::false_type;
+    template<typename, typename U>
+    static auto test(long) -> std::false_type;
 }
 
-template<class T, class Arg>
-struct has_stream : decltype(detail::test_stream<T, Arg>(0)){};
+template<typename T, typename U>
+struct has_hello_int_return_string : decltype(detail::test<T, U>(0)){};
+
+static_assert(has_hello_int_return_string<WithHello, int>());
+static_assert(!has_hello_int_return_string<WithoutHello, int>());
+
+}
 
 
-
-
+// does only check the existence of the function. does not check neither the return type or the input type.
+namespace third {
 // third version.
 // SFINAE test. we will make use of type sizes in this implementation.
-template <typename T>
-class has_helloworld
-{
-    using one = uint8_t; // size 1 byte.
-    using two = uint16_t; // size 2 bytes.
 
-    template<typename U> // cannot use T here.
-    static one test(decltype(&U::helloworld));
+// T will be the struct we are testing.
+template<typename T>
+class HasHello
+{   
+private: // below declarations do not have to be private, since the exposed variable "value" is enough.
+    using one = uint8_t;
+    using two = uint16_t;
 
-    template<typename U>  // cannot use T here.
-    static two test(...); // fallback method. the most generic one.   
+    // note that we needed to use U, not T; since we cannot use T multiple times.
+    template<typename U>
+    static one test(decltype(&U::hello));
+
+    template<typename U>
+    static two test(...); // sink function.
+
 public:
-    // enum { value = sizeof(test<T>(0)) == sizeof(uint8_t) };
-    static const int value = sizeof(test<T>(0)) == sizeof(uint8_t); // this looks more modern and explicit.
+    static constexpr bool value = sizeof(   test<T>(0)  ) == sizeof(uint8_t); // in order to call test method here without an object, we made test method static.
 };
+
+static_assert(HasHello<WithHello>::value);
+static_assert(!HasHello<WithoutHello>::value);
+
+}
+
 
 int main()
 {
-    // invoking the first method.
-    ClassWithToString with_to_string;
-    ClassWithoutToString without_to_string;
 
-    std::cout << optionalToString(&with_to_string) << std::endl;
-    std::cout << optionalToString(&without_to_string) << std::endl;
-
-
-
-    // invoking the second method.
-    struct X{ void stream(int){} };
-    struct Y{};
-
-    static_assert(has_stream<X, int>() == true, "fail X");
-    static_assert(has_stream<Y, int>() == false, "fail Y");
-
-
-    // invoking the third version.
-    struct Hello
-    {
-        int helloworld() { return 0; }
-    };
-    struct Generic {};   
-
-    std::cout << "has_helloworld<Hello>: " << has_helloworld<Hello>::value << std::endl;
-    std::cout << "has_helloworld<Generic>: " << has_helloworld<Generic>::value << std::endl;
 }

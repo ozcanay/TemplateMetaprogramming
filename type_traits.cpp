@@ -16,7 +16,7 @@ struct From {
 // std::is_convertible<From, To> (the type trait) checks is type From is implicitly convertible to type To.
 // std::convertible_to<From, To> (the concept) checks that From is **both** implicitly and **explicitly** convertible to To.
 static_assert(std::is_convertible_v<From, To>);
-static_assert(not std::convertible_to<From, To>);
+static_assert(!std::convertible_to<From, To>);
 
 int main()
 {

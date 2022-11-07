@@ -20,6 +20,15 @@ Compile time programming topics, the big picture:
 # Important Links
 
 https://quuxplusone.github.io/blog/tags/#metaprogramming
+https://stackoverflow.com/questions/69801126/doesnt-constraining-the-auto-in-c-defeat-the-purpose-of-it
+https://stackoverflow.com/questions/4021981/use-static-assert-to-check-types-passed-to-macro
+https://stackoverflow.com/questions/23095310/c-concepts-vs-static-assert
+
+### Advanced
+
+https://oleksandrkvl.github.io/2021/04/02/cpp-20-overview.html
+https://akrzemi1.wordpress.com/2020/05/07/ordering-by-constraints/
+
 
 # Building Blocks
 
@@ -52,10 +61,11 @@ typedef std::integral_constant<bool,true> std::true_type;
 typedef std::integral_constant<bool,false> std::false_type;
 ```
 
+```std::true_type``` and ```std::false_type``` are used to represent the values false and true as types. This is useful in type traits where you let a class template **inherit** from either ```std::false_type``` or ```std::true_type``` for different (partial) specializations, depending on some condition met by the template argument. Doing so allows one to test whether a given type satisfies the condition of the type trait and to obtain a compile time constant value indicating the result through access to the static value member which is inherited from either ```std::false_type``` or ```std::true_type``` or alternative through conversion of an instance of the type trait using the conversion operator.
+
 
 # TODO:
 
-- Explain has_member_func.cpp more.
 - expand_all, increment all, print all parameter packs. already present in my other github repo named templates.
 - to_string variadic.
 - add FIBONACCI (not factorial!) -> necati had this.
@@ -137,6 +147,8 @@ class = void is observed in void_t examples. -> the default argument has to be t
 
 # Concepts
 
+Concepts are a constraint on types.
+
 Concepts are a revolutionary approach for writing templates! They allow you to put constraints on template parameters that improve the readability of code, speed up compilation time, and give better error messages.
 
 From one perspective, we can say that the requires expression takes a type and tries to instantiate the specified requirements. If it fails, then a given class doesn’t comply with this concept. **It’s like SFINAE** but in a friendly and easy-to-express syntax. Thanks to Concepts we can now easily detect a function, a member function or even a particular overload. This is much simpler that with complicated SFINAE techniques that we had before.
@@ -145,7 +157,19 @@ Thanks to the introduction of two new language keywords: requires and concept, y
 
 https://www.stroustrup.com/good_concepts.pdf
 
+```
+// infamous `requires requires`. First `requires` is requires-clause,
+// second one is requires-expression. Useful if you don't want to introduce new
+// concept.
+template<typename T>
+requires requires(T a, T b) {a + b;}
+auto f4(T x);
+```
+
+
 # SFINAE
+
+SFINAE came up when we introduced std::enable_if. It helps to have different overloads for templates.
 
 "Substitution Failure Is Not An Error". Very briefly: the compiler can reject code that “would not compile” for a given type. SFINAE relies on the compiler **not being allowed to produce an error** if an overloaded function isn’t valid. 
 
@@ -169,6 +193,7 @@ Since C++17 we have a new tool, build in the language, that allows you to check 
 3. Concepts!
 
 https://jguegant.github.io/blogs/tech/sfinae-introduction.html
+https://www.sandordargo.com/blog/2021/06/02/different-ways-to-achieve-SFINAE
 
 
 ### Expression SFINAE
@@ -203,7 +228,7 @@ obtains a reference to its argument for use in unevaluated context.
 
 Converts any type T to a reference type, making it possible to use member functions in decltype expressions without the need to go through constructors.
 
-declval is commonly used in templates where acceptable template parameters ***may have no constructor in common***, but have the same member function whose return type is needed.
+declval is commonly used in templates where acceptable template parameters **may have no constructor in common**, but have the same member function whose return type is needed.
 
 Note that declval can only be used in **unevaluated contexts** and is not required to be defined; it is an error to evaluate an expression that contains this function.
 
@@ -295,6 +320,10 @@ https://stackoverflow.com/questions/20368187/when-would-i-use-stdintegral-consta
 # Expression Templates
 
 Expression templates are “structures representing a computation at compile-time, which are evaluated only as needed to produce efficient code for the entire computation.” This is called lazy evaluation.
+
+# std::conditional
+
+
 
 #
 
