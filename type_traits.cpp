@@ -18,6 +18,17 @@ struct From {
 static_assert(std::is_convertible_v<From, To>);
 static_assert(!std::convertible_to<From, To>);
 
+template<typename T, typename U>
+struct is_explicity_convertible
+{
+    static constexpr bool value = std::is_constructible_v<T, U> && !std::is_constructible_v<U, T>;
+};
+
+// this example is wrong supposedly.
+static_assert(!is_explicity_convertible<int, long>::value);
+
+
+
 int main()
 {
 

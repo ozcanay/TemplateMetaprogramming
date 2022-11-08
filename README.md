@@ -25,7 +25,7 @@ https://quuxplusone.github.io/blog/tags/#metaprogramming
 https://stackoverflow.com/questions/69801126/doesnt-constraining-the-auto-in-c-defeat-the-purpose-of-it
 https://stackoverflow.com/questions/4021981/use-static-assert-to-check-types-passed-to-macro
 https://stackoverflow.com/questions/23095310/c-concepts-vs-static-assert
-https://spectre-code.org/sfinae.html -> IS_ITERABLE. WRITE DOWN THE EXAMPLE FOR THIS.
+https://spectre-code.org/sfinae.html
 
 ```
 template <typename T>
@@ -35,6 +35,14 @@ struct is_iterable<T, std::void_t<decltype(std::declval<T>().begin(),
 ```
 
 it is evidently possible to check the validity of more than one expressions in decltype.
+
+
+https://nilsdeppe.com/posts/tmpl-part1
+https://stackoverflow.com/questions/25680461/variadic-template-pack-expansion
+https://stackoverflow.com/questions/4484982/how-to-convert-typename-t-to-string-in-c -> human readable types names with specializations.
+https://stackoverflow.com/questions/1005476/how-to-detect-whether-there-is-a-specific-member-variable-in-class
+https://benjaminbrock.net/blog/detection_idiom.php
+http://thbecker.net/articles/auto_and_decltype/section_01.html
 
 ### Advanced
 
@@ -49,6 +57,16 @@ https://akrzemi1.wordpress.com/2020/05/07/ordering-by-constraints/
 Metafunctions receive **types** and/or integral values, and after performing some logics returns **types** and/or integral values. Normal functions manipulate values, **but the focus of a metafunction is types.**
 
 https://iamsorush.com/posts/cpp-meta-function/
+
+
+Inheritance is at the heart of type traits. Generally, we inherit from true_type, false_type or sometimes integral_constant. Since these structs have two template parameters, it is usually convenient to have two template parameters in the derived class to represent type and the value. More often than not, we will utilize the value field to check if a property holds or not.
+
+```
+template <typename T, typename U>
+struct HasX : std::false_type { };
+```
+
+In this case, there's no surprise: HasX derives from std::false_type and hence HasX<bool, double>::value == false and HasX<bool, int>::value == false.
 
 ##### std::integral_constant
 
@@ -105,6 +123,35 @@ typedef std::integral_constant<bool,false> std::false_type;
 
 - https://meetingcpp.com/mcpp/slides/2019/Modern%20Template%20Techniques.pdf
 
+
+# Deduction
+
+Deduction refers to the process of determining the type of a template parameter from a given argument. It applies to function templates, auto, and a few other cases (e.g. partial specialization).
+
+In order for deduction to work, the template parameter type that is to be deduced has to appear in a **deducible context**.
+
+However, there are also non-deduced contexts, where no deduction is possible. 
+
+Related link: https://stackoverflow.com/a/25245676/4645121
+
+# Two phase lookup
+
+Templates are compiled (at least) twice:
+
+1. Without Instantiation the template code itself is checked for syntax.
+Eg: Any syntax errors such as ; etc.
+
+2. At the time of instantiation(when the exact type is known), the template code is checked again to ensure all calls are valid for that particular type.
+Eg: The template might, in turn, call functions which might not be present for that particular type.
+
+Also note that lookup for non-dependent names is done in the first phase, whereas lookup for names that depend on a template parameter is done in the second phase. The significance is that if you call ```sqrt(1)```, then ```sqrt``` needs to be declared before the template is defined. But if you call ```sqrt(t)```, where t is an instance of a type that's a template parameter, then sqrt needn't be visible until the template is instantiated.
+
+# Specialization vs Explicit Instantiation
+
+```template <> void foo<int>(int& t);``` declares a specialization of the template, with potentially different body.
+
+```template void foo<int>(int& t);``` causes an explicit instantiation of the template, but doesn't introduce a specialization. It just forces the instantiation of the template for a specific type.
+
 # Variadic templates pattern
 
 The usage of parameter packs obeys a typical pattern for class templates.
@@ -151,7 +198,7 @@ template< class ... >
 using void_t = void;
 ```
 
-Utility metafunction that maps a sequence of any types to the type void. This metafunction is a convenient way to leverage SFINAE prior to C++20's concepts, in particular for conditionally removing functions from the candidate set based on whether an expression is valid in the **unevaluated context** (such as operand to decltype expression), allowing to exist separate function overloads or specializations, based on supported operations. This helper type is often used for **detection pattern.**
+Utility metafunction that maps a sequence of any types to the type void. This metafunction is a convenient way to leverage SFINAE prior to C++20's concepts, in particular for conditionally removing functions from the candidate set based on whether an expression is valid in the **unevaluated context** (such as operand to decltype expression), allowing to exist separate function overloads or specializations, based on supported operations. This helper type is often used for **detection pattern.** void_t is useful when used in combination with decltype and std::declval to **probe** if a type has certain members.
 
 This metafunction is used in template metaprogramming to detect ill-formed types in SFINAE context. It can also be used to detect validity of an expression.
 
@@ -182,7 +229,7 @@ auto f4(T x);
 
 # SFINAE
 
-SFINAE came up when we introduced std::enable_if. It helps to have different overloads for templates.
+SFINEA is a way of controlling overload resolution. SFINAE came up when we introduced std::enable_if. It helps to have different overloads for templates.
 
 "Substitution Failure Is Not An Error". Very briefly: the compiler can reject code that “would not compile” for a given type. SFINAE relies on the compiler **not being allowed to produce an error** if an overloaded function isn’t valid. 
 
@@ -236,6 +283,8 @@ template<class T>
 typename std::add_rvalue_reference<T>::type declval() noexcept;
 ```
 
+std::declval<A>() serves us well here by obviating the need for there to be any public constructor of T, or for us to know about it.
+
 std::declval is a helper (added in C++11) that allows us to “pretend” that we have an object of some type (even if the default constructor is not available).
 obtains a reference to its argument for use in unevaluated context.
 
@@ -271,6 +320,11 @@ In contrast, constexpr functions may be evaluated at compile time or run time, a
 Same as constexpr, a consteval specifier implies inline.
 
 **At most one** of the constexpr, consteval, and constinit specifiers is allowed to appear within the same sequence of declaration specifiers.
+
+# decay
+
+I encounter this a lot in templated code snippets.
+
 # constinit
 
 constinit is invented to prevent static order initialization fiasco:
