@@ -23,49 +23,39 @@ struct WithoutHello {
 
 
 
+// concepts. must be the default choice since C++20.
 
-
-namespace concepts {
-// first version.
-// This should be the preferred way starting from C++20.
-
-template<typename T>
-concept has_hello_int_return_string = requires(T t) 
+template<typename T, typename I, typename R> // T is struct, U input type, V output type.
+concept ConceptHelloIntReturnsString = requires(T t)
 {
-    {t.hello(int{})} -> std::same_as<std::string>;
-}; // do not forget semicolon here.
+    {t.hello(std::declval<I>())} -> std::same_as<R>; // this is not std::is_same. std::same_as is concept whereas std::is_same is metafunction.
+    // {t.hello(U{})} -> std::same_as<V>; // U{} instead of declval also works. I will use declval to be explicit.
+};
+
+static_assert(ConceptHelloIntReturnsString<WithHello, int, std::string>);
+static_assert(!ConceptHelloIntReturnsString<WithoutHello, int, std::string>);
 
 
 
-static_assert(has_hello_int_return_string<WithHello>);
-static_assert(!has_hello_int_return_string<WithoutHello>);
+/// expression sfinae
 
-}
+template<typename T, typename R>
+struct sfinae_true : std::is_same<T, R>
+{};
 
+template<typename T, typename R>
+static auto test(int) -> sfinae_true<decltype(std::declval<T>().hello(std::declval<int>())), R>;
 
+template<typename T,  typename>
+static auto test(long) -> std::false_type;
 
-namespace expression_sfinae {
-// second version.
+template<typename T, typename I, typename R>
+struct ExpressionSFINAEHelloIntReturnsString : decltype(test<T, R>(std::declval<I>()))
+{};
 
-// need this for SFINAE to work.
-template<typename T>
-struct sfinae_true : std::is_same<T, std::string>{}; // note the inheritance here. instead of just inheriting from std::true_type, I will inherit from std::is_same to be able to check also the return type.
+static_assert(ExpressionSFINAEHelloIntReturnsString<WithHello, int, std::string>::value); // ExpressionSFINAEHelloIntReturnsString<WithHello>() is also same. operator() is defined!
+static_assert(!ExpressionSFINAEHelloIntReturnsString<WithoutHello, int, std::string>::value);
 
-namespace detail{
-    template<typename T, typename U>
-    static auto test(int) -> sfinae_true<decltype(std::declval<T>().hello(std::declval<U>()))>;
-
-    template<typename, typename U>
-    static auto test(long) -> std::false_type;
-}
-
-template<typename T, typename U>
-struct has_hello_int_return_string : decltype(detail::test<T, U>(0)){};
-
-static_assert(has_hello_int_return_string<WithHello, int>()); // ==> did not like "int" here.
-static_assert(!has_hello_int_return_string<WithoutHello, int>());
-
-}
 
 
 // does only check the existence of the function. does not check neither the return type or the input type.
@@ -154,7 +144,7 @@ static_assert(!has_hello<WithoutHello>::value);
 
 int main()
 {
-    const WithHello    with_hello;
+/*    const WithHello    with_hello;
     const WithoutHello without_hello;
 
     if constexpr(concepts::has_hello_int_return_string<WithHello>) {
@@ -185,7 +175,7 @@ int main()
         std::cout << "enable_if: " << with_hello.hello(42) << std::endl;
     } else {
         std::cout << "enable_if cannot say hi!" << std::endl;
-    }
+    }*/
 
 
     // I am also going to demonstrate the use of tag-dispatching:
